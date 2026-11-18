@@ -21,7 +21,7 @@ run-name: "${{ github.event_name == 'workflow_dispatch' && inputs.pull-request !
 
 on:
   push:
-    branches: ['**']
+    branches: ['**', '!diagnose-doris-fe-ci']
   workflow_dispatch:
     inputs:
       pull-request:

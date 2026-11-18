@@ -31,6 +31,7 @@ services:
       - "9030"
     volumes:
       - ./start-fe.sh:/opt/apache-doris/start-fe.sh
+      - ./fe-diagnostic-logs:/opt/apache-doris/fe/log
     command: ["start-fe.sh"]
     healthcheck:
       test: ["CMD", "bash", "-c", "curl -s http://localhost:8030/api/bootstrap | grep -q '\"msg\":\"success\"'"]

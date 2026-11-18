@@ -86,6 +86,7 @@ jobs:
 
       - name: Spark Integration Test
         id: integrationTest
+        if: ${{ github.ref_name != 'diagnose-doris-fe-ci' }}
         run: |
           ./gradlew -PskipTests -PtestMode=${{ inputs.test-mode }} -PscalaVersion=${{ inputs.scala-version }} -PskipDockerTests=false -PskipWeb=true :spark-connector:spark-3.5:test --tests "org.apache.gravitino.spark.connector.integration.test.**"
           # Spark 4 is Scala 2.13 only, so its module ignores -PscalaVersion. Guard on 2.12 so that
@@ -98,18 +99,20 @@ jobs:
         id: dorisIntegrationTest
         if: ${{ inputs.test-mode == 'embedded' && inputs.scala-version == '2.12' }}
         run: |
+          mkdir -p integration-test-common/doris-docker-script/fe-diagnostic-logs
           ./gradlew -PskipTests -PtestMode=embedded -PscalaVersion=2.12 -PskipDockerTests=false -PskipWeb=true -PdorisMultiVersionTest :spark-connector:spark-3.5:test \
             --tests "org.apache.gravitino.spark.connector.integration.test.jdbc.SparkJdbcDorisReadBaselineIT35.testPartitionedReadOptionsAreScopedToEachRead" \
             --tests "org.apache.gravitino.spark.connector.integration.test.jdbc.SparkJdbcDorisReadBaselineIT35.testGovernedQueriesWithPartitionedRead"
 
       - name: Upload integrate tests reports
         uses: actions/upload-artifact@v7
-        if: ${{ (failure() && (steps.integrationTest.outcome == 'failure' || steps.dorisIntegrationTest.outcome == 'failure')) || contains(github.event.pull_request.labels.*.name, 'upload log') }}
+        if: ${{ ((success() || failure()) && steps.dorisIntegrationTest.outcome != 'skipped') || (failure() && steps.integrationTest.outcome == 'failure') || contains(github.event.pull_request.labels.*.name, 'upload log') }}
         with:
           name: spark-connector-integrate-test-reports-${{ inputs.java-version }}-${{ inputs.test-mode }}
           path: |
             build/reports
             spark-connector/v3.5/spark/build/spark-3.5-integration-test.log
             spark-connector/v4.0/spark/build/spark-4.0-integration-test.log
+            integration-test-common/doris-docker-script/fe-diagnostic-logs
             distribution/package/logs/*.out
             distribution/package/logs/*.log
